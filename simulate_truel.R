@@ -175,27 +175,3 @@ simulate_truel <- function(strategy, k) {
 
 # run function
 simulate_truel(strategy = "miss_accidentally", k = 10000)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
