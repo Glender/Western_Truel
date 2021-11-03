@@ -1,5 +1,6 @@
 library(R6)
 library(tibble)
+library(dplyr)
 
 # Set Class for Arena
 Arena <- R6Class(
@@ -7,18 +8,18 @@ Arena <- R6Class(
   public = list(
       data_A = tibble(
         players = c("Black", "Gray", "White"),
-        hit_rate = c(1/3, 2/3, 3/3),
-        turn = c(1,0,0)
+        hit_rate = c( 1/3, 2/3, 3/3),
+        turn = c(1, 0, 0)
       ),
       data_B = tibble(
         players = c("Black", "Gray", "White"),
         hit_rate = c(1/3, 2/3, 3/3),
-        turn = c(0,1,0)
+        turn = c(0, 1, 0)
       ),
       arena = NULL,
       initialize = function(strategy){
-        if(strategy=="normal") {self$arena <- self$data_A}
-        if(strategy=="miss_accidentally") {self$arena <- self$data_B}
+        if(strategy=="shoot_everyone") self$arena <- self$data_A
+        if(strategy=="miss_accidentally") self$arena <- self$data_B
       },
       results = tibble(
         "Black" = 0,
@@ -31,23 +32,29 @@ Arena <- R6Class(
 # add function to choose a shooter
 Arena$set(
   "public", "choose_shooter", function(){
+    
     # choose shooter
-    shooter <- filter(self$arena, turn==1)
+    shooter <- dplyr::filter(self$arena, turn==1)
+    
     # remove shooter from arena
-    self$arena <- filter(self$arena, turn==0)
-    #print(shooter[1,1])
+    self$arena <- dplyr::filter(self$arena, turn==0)
+    
     return(shooter)
   }
 )
 
+
 # add function to class to choose a target
 Arena$set(
   "public", "choose_target", function(){
+    
     # Choose target with highest hit prob
     self$arena <- arrange(self$arena, desc(hit_rate))
-    target <- self$arena[1,]
+    target <- self$arena[1, ]
+    
     # remove target from arena
-    self$arena <- self$arena[-1,]
+    self$arena <- self$arena[-1, ]
+    
     return(target)
   }
 )
@@ -55,8 +62,10 @@ Arena$set(
 # add function to shoot at a target
 Arena$set(
   "public", "shoot_target", function(shooter){
+    
     # Extract shooter
     shooter <- as.character(shooter[1,1])
+    
     # Set probability for shooter
     if (shooter == "Black") {
       prob <- c(1/3, 2/3)
@@ -75,6 +84,7 @@ Arena$set(
 Arena$set(
   "public", "update_arena", 
     function(result_shot, target, shooter){
+      
       # If the shooter missed, put the target back in the arena
       if(result_shot=="Miss"){
         self$arena <- rbind(self$arena, target)
@@ -119,6 +129,7 @@ Arena$set(
 # Set functions to update the scoreboard and reset the game
 Arena$set(
   "public", "update_scoreboard", function(strategy){
+    
     # Adjust scores
     if(nrow(self$arena)==1){
       if(nrow(filter(self$arena, players %in% "Black")) == 1) self$results[,1] <- self$results[,1] + 1
@@ -126,7 +137,7 @@ Arena$set(
       if(nrow(filter(self$arena, players %in% "White")) == 1) self$results[,3] <- self$results[,3] + 1
       
       # adjust arena
-      if(strategy=="normal") {self$arena <- self$data_A}
+      if(strategy=="shoot_everyone") {self$arena <- self$data_A}
       if(strategy=="miss_accidentally") {self$arena <- self$data_B}
     }
   }
@@ -168,10 +179,15 @@ simulate_truel <- function(strategy, k) {
     
     # Print scores when done
     if(i == k){
+      cat("\n")
       print(western_shootout$results/k)
     } 
   }
 }
 
 # run function
-simulate_truel(strategy = "miss_accidentally", k = 10000)
+# strat: shoot on everything that moves
+simulate_truel(strategy = "shoot_everyone", k = 1000)
+
+# strat: miss the first shot accidentally
+simulate_truel(strategy = "miss_accidentally", k = 1000)
